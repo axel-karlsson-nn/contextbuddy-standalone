@@ -1,6 +1,15 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { app } from 'electron';
+
+// Config file location for packaged app
+const CONFIG_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'ContextBuddy');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+
+interface AppConfig {
+  contextBuddyPath: string;
+}
 
 /**
  * Load environment variables from .env.local (for development)
@@ -24,24 +33,75 @@ function loadEnvLocal(): void {
   }
 }
 
-// Load env on module import
+/**
+ * Read config from Application Support (for packaged app)
+ */
+function readConfig(): AppConfig | null {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const content = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      return JSON.parse(content);
+    }
+  } catch (error) {
+    console.error('Error reading config:', error);
+  }
+  return null;
+}
+
+/**
+ * Write config to Application Support
+ */
+export function writeConfig(config: AppConfig): void {
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  }
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+/**
+ * Check if config exists
+ */
+export function configExists(): boolean {
+  return fs.existsSync(CONFIG_FILE);
+}
+
+/**
+ * Get the config directory path
+ */
+export function getConfigDir(): string {
+  return CONFIG_DIR;
+}
+
+/**
+ * Get the config file path
+ */
+export function getConfigFile(): string {
+  return CONFIG_FILE;
+}
+
+// Load env on module import (dev mode only)
 loadEnvLocal();
 
 /**
  * Get the base ContextBuddy path
- * - In production: bundled in app resources
+ * - In production: from ~/Library/Application Support/ContextBuddy/config.json
  * - In development: from CONTEXTBUDDY_PATH env var
  */
-export function getContextBuddyPath(): string {
+export function getContextBuddyPath(): string | null {
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'mcp-server');
+    const config = readConfig();
+    if (!config) {
+      return null; // Will trigger first-run setup
+    }
+    return config.contextBuddyPath;
   }
 
   const envPath = process.env.CONTEXTBUDDY_PATH;
   if (!envPath) {
-    throw new Error(
+    console.error(
       'CONTEXTBUDDY_PATH not set. Create .env.local with:\nCONTEXTBUDDY_PATH=/path/to/your/contextbuddy'
     );
+    return null;
   }
   return envPath;
 }
@@ -49,13 +109,17 @@ export function getContextBuddyPath(): string {
 /**
  * Get the path to the MCP server entry point
  */
-export function getMcpServerPath(): string {
-  return path.join(getContextBuddyPath(), 'dist', 'index.js');
+export function getMcpServerPath(): string | null {
+  const basePath = getContextBuddyPath();
+  if (!basePath) return null;
+  return path.join(basePath, 'dist', 'index.js');
 }
 
 /**
  * Get the path to the web server
  */
-export function getWebServerPath(): string {
-  return path.join(getContextBuddyPath(), 'web', 'server.js');
+export function getWebServerPath(): string | null {
+  const basePath = getContextBuddyPath();
+  if (!basePath) return null;
+  return path.join(basePath, 'web', 'server.js');
 }

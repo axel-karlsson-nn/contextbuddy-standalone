@@ -2,11 +2,16 @@
 
 A macOS menu bar app that makes ContextBuddy zero-config. Companion app for Claude Code CLI.
 
-## Vision
+## Security Model
 
-**Current (CLI version):** Clone → npm install → npm build → configure .mcp.json → run claude
+**Your data stays where YOU put it.**
 
-**Standalone:** Download app → drag to Applications → launch → run claude
+- You choose the folder containing your notes
+- App only accesses that ONE folder
+- Config stored in `~/Library/Application Support/ContextBuddy/config.json`
+- No cloud sync, no network access (except localhost:3333 for dashboard)
+- No telemetry, no analytics
+- Fully auditable source code
 
 ## How It Works
 
@@ -14,136 +19,148 @@ A macOS menu bar app that makes ContextBuddy zero-config. Companion app for Clau
 ┌─────────────────────────────────────┐
 │  ContextBuddy.app (Menu Bar)        │
 ├─────────────────────────────────────┤
-│  • Bundles Node.js runtime          │
-│  • Bundles MCP server               │
-│  • Auto-configures ~/.mcp.json      │
-│  • Runs web dashboard               │
-│  • Menu bar icon for quick access   │
+│  • Starts web dashboard             │
+│  • Menu bar quick access            │
+│  • Points to YOUR folder            │
 └─────────────────────────────────────┘
-         ↕ MCP Protocol
+              │
+              ▼
+┌─────────────────────────────────────┐
+│  Your ContextBuddy Folder           │
+│  (you choose the location)          │
+├─────────────────────────────────────┤
+│  ├── .data/        ← Your notes     │
+│  ├── dist/         ← MCP server     │
+│  └── web/          ← Dashboard      │
+└─────────────────────────────────────┘
+              │
+              ▼
 ┌─────────────────────────────────────┐
 │  Claude Code CLI                    │
-│  (user runs in any terminal)        │
+│  (run from your folder)             │
 └─────────────────────────────────────┘
 ```
 
-## Features
+## Installation
+
+### Prerequisites
+
+- macOS 12+
+- Node.js 18+
+- [Claude Code CLI](https://claude.ai/code)
+
+### Build the App
+
+```bash
+# Clone the repository
+git clone https://github.com/axel-karlsson-nn/contextbuddy-standalone.git
+cd contextbuddy-standalone
+
+# Install dependencies
+npm install
+
+# Build the macOS app
+npm run dist:mac
+
+# Copy to Applications
+cp -r dist/mac-arm64/ContextBuddy.app /Applications/
+```
+
+### Set Up Your ContextBuddy Folder
+
+You need a folder with the ContextBuddy MCP server. Either:
+
+**Option A: Clone the main repo**
+```bash
+git clone https://github.com/axel-karlsson-nn/contextbuddy.git ~/ContextBuddy
+cd ~/ContextBuddy
+npm install
+npm run build
+```
+
+**Option B: Use existing installation**
+If you already have ContextBuddy set up somewhere, just point to that folder.
+
+### First Run
+
+1. Open `ContextBuddy.app` from Applications
+2. Select your ContextBuddy folder when prompted
+3. App validates the folder structure (needs `dist/` and `web/`)
+4. Config saved to `~/Library/Application Support/ContextBuddy/config.json`
+5. Web server starts automatically
+
+## Usage
 
 ### Menu Bar
-- Status indicator (running/stopped)
-- Quick actions:
-  - Open Dashboard
-  - Open Recent Notes
-  - Pause Capture
-  - Preferences
-  - Quit
 
-### First Launch
-1. Welcome screen explaining what it does
-2. Auto-detect if Claude Code CLI is installed
-3. Configure `~/.mcp.json` (backup existing first)
-4. Optionally set up teams/projects
-5. Ready to go
+Click the menu bar icon to:
+- **Open Dashboard** - View notes in browser
+- **Start/Stop Server** - Control the web server
+- **Change Path** - Point to a different folder
 
-### Dashboard
-- Same web UI from CLI version
-- Opens in default browser or embedded webview
+### With Claude Code
 
-### Background Service
-- MCP server runs as background process
-- Starts on login (optional)
-- Low memory footprint
+```bash
+cd ~/ContextBuddy  # or wherever your folder is
+claude
+```
 
-## Tech Stack Options
+The folder has its own `.mcp.json` that configures Claude Code to use ContextBuddy.
 
-### Option 1: Electron
-- Pros: Familiar, lots of examples, easy Node integration
-- Cons: ~100MB bundle size
+## Configuration
 
-### Option 2: Tauri
-- Pros: ~10MB bundle size, Rust backend, modern
-- Cons: Learning curve, need to bridge to Node for MCP
+Config file: `~/Library/Application Support/ContextBuddy/config.json`
 
-### Option 3: Swift + bundled Node
-- Pros: Native feel, small wrapper
-- Cons: More complex build process
+```json
+{
+  "contextBuddyPath": "/path/to/your/contextbuddy/folder"
+}
+```
 
-**Recommendation:** Start with Electron for speed, consider Tauri later for size.
+You can edit this manually or use "Change ContextBuddy Path..." from the menu.
 
-## Project Structure
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Create .env.local with your dev path
+echo "CONTEXTBUDDY_PATH=/path/to/your/contextbuddy" > .env.local
+
+# Run in development mode
+npm run dev
+
+# Build for production
+npm run dist:mac
+```
+
+### Project Structure
 
 ```
 contextbuddy-standalone/
-├── src/
-│   ├── main/           # Electron main process
-│   │   ├── index.ts    # App entry point
-│   │   ├── tray.ts     # Menu bar/tray icon
-│   │   ├── config.ts   # Manage ~/.mcp.json
-│   │   └── server.ts   # Start MCP server
-│   ├── renderer/       # UI (if using webview)
-│   │   └── preferences/
-│   └── mcp/            # Bundled MCP server (from contextbuddy)
-├── assets/
-│   ├── icon.png
-│   ├── iconTemplate.png  # macOS menu bar icon
-│   └── iconTemplate@2x.png
-├── package.json
-├── electron-builder.yml
-└── README.md
+├── src/main/
+│   ├── index.ts      # Electron entry, menu bar
+│   ├── server.ts     # Start/stop web server
+│   ├── config.ts     # Claude Code config
+│   └── paths.ts      # Path management
+├── assets/           # Menu bar icons
+├── .env.example      # Template for dev config
+└── package.json
 ```
 
-## Security Model
+## Why Not Pre-built Releases?
 
-Same as CLI version:
-- All data in `~/.contextbuddy/` (or app-specific location)
-- No cloud sync, no external services
-- No network access except localhost for web UI
+Pre-built macOS apps need to be signed and notarized with an Apple Developer certificate ($99/year) to run without security warnings.
 
-**New behaviors:**
-- Writes to `~/.mcp.json` (with backup)
-- Registers as login item (optional, with permission)
-
-## Development Roadmap
-
-### Phase 1: Basic Menu Bar App
-- [ ] Electron app skeleton
-- [ ] Menu bar icon with basic menu
-- [ ] Bundle MCP server from contextbuddy
-- [ ] Start/stop server
-
-### Phase 2: Auto-Configuration
-- [ ] Detect Claude Code CLI
-- [ ] Read/write ~/.mcp.json
-- [ ] Backup existing config
-- [ ] First-run wizard
-
-### Phase 3: Dashboard Integration
-- [ ] Open web UI in browser
-- [ ] Or: embedded webview
-
-### Phase 4: Polish
-- [ ] Login item support
-- [ ] Auto-update
-- [ ] Notarization for macOS
-- [ ] DMG installer
-
-## Building
-
-```bash
-npm install
-npm run dev      # Development mode
-npm run build    # Build .app
-npm run dist     # Create DMG
-```
-
-## Requirements
-
-- macOS 12+
-- Claude Code CLI (for chat functionality)
+Building from source:
+- Is more transparent (you can audit the code)
+- Doesn't require trusting a pre-built binary
+- Works without Apple Developer signing
 
 ## Related
 
-- [ContextBuddy CLI](https://github.com/axel-karlsson-nn/contextbuddy) - The original MCP server
+- [ContextBuddy](https://github.com/axel-karlsson-nn/contextbuddy) - The MCP server and CLI tool
 
 ## License
 

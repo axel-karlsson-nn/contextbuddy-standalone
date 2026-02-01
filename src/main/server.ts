@@ -1,45 +1,74 @@
 import { spawn, ChildProcess } from 'child_process';
-import { getWebServerPath } from './paths';
+import * as path from 'path';
+import { getWebServerPath, getContextBuddyPath } from './paths';
 
 let webProcess: ChildProcess | null = null;
 
 /**
- * Start the MCP server process
- * Note: The MCP server is started by Claude Code via the mcp.json config
- * We only need to start the web UI server here
+ * Start the web server process
+ * Returns true if started successfully, false otherwise
  */
-export async function startMcpServer(): Promise<void> {
+export async function startMcpServer(): Promise<boolean> {
   if (webProcess) {
     console.log('Web server already running');
-    return;
+    return true;
   }
 
   const webServerPath = getWebServerPath();
+  const contextBuddyPath = getContextBuddyPath();
+
+  if (!webServerPath || !contextBuddyPath) {
+    console.error('Web server path not configured');
+    return false;
+  }
+
   console.log('Starting web server from:', webServerPath);
+  console.log('Working directory:', contextBuddyPath);
 
-  webProcess = spawn('node', [webServerPath], {
-    stdio: 'pipe',
-    env: { ...process.env },
-  });
+  try {
+    webProcess = spawn('node', [webServerPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env },
+      cwd: contextBuddyPath,  // Set working directory to contextbuddy folder
+      detached: false,
+    });
 
-  webProcess.stdout?.on('data', (data) => {
-    console.log(`[web] ${data}`);
-  });
+    webProcess.stdout?.on('data', (data) => {
+      console.log(`[web] ${data.toString().trim()}`);
+    });
 
-  webProcess.stderr?.on('data', (data) => {
-    console.error(`[web] ${data}`);
-  });
+    webProcess.stderr?.on('data', (data) => {
+      console.error(`[web] ${data.toString().trim()}`);
+    });
 
-  webProcess.on('close', (code) => {
-    console.log(`Web server exited with code ${code}`);
-    webProcess = null;
-  });
+    webProcess.on('close', (code) => {
+      console.log(`Web server exited with code ${code}`);
+      webProcess = null;
+    });
 
-  console.log('Web server started on http://localhost:3333');
+    webProcess.on('error', (error) => {
+      console.error('Failed to start web server:', error);
+      webProcess = null;
+    });
+
+    // Wait a bit to see if it crashes immediately
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    if (webProcess === null) {
+      console.error('Web server crashed on startup');
+      return false;
+    }
+
+    console.log('Web server started on http://localhost:3333');
+    return true;
+  } catch (error) {
+    console.error('Error starting web server:', error);
+    return false;
+  }
 }
 
 /**
- * Stop the MCP server process
+ * Stop the web server process
  */
 export async function stopMcpServer(): Promise<void> {
   if (webProcess) {
