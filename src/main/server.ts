@@ -1,33 +1,7 @@
 import { spawn, ChildProcess } from 'child_process';
-import * as path from 'path';
-import { app } from 'electron';
+import { getWebServerPath } from './paths';
 
-let mcpProcess: ChildProcess | null = null;
 let webProcess: ChildProcess | null = null;
-
-/**
- * Get the path to the bundled MCP server
- */
-function getMcpServerPath(): string {
-  if (app.isPackaged) {
-    // In production, use the bundled server
-    return path.join(process.resourcesPath, 'mcp-server', 'dist', 'index.js');
-  } else {
-    // In development, point to the original contextbuddy
-    return '/Users/axekar/contextbuddy/dist/index.js';
-  }
-}
-
-/**
- * Get the path to the web server
- */
-function getWebServerPath(): string {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'mcp-server', 'web', 'server.js');
-  } else {
-    return '/Users/axekar/contextbuddy/web/server.js';
-  }
-}
 
 /**
  * Start the MCP server process
@@ -41,6 +15,7 @@ export async function startMcpServer(): Promise<void> {
   }
 
   const webServerPath = getWebServerPath();
+  console.log('Starting web server from:', webServerPath);
 
   webProcess = spawn('node', [webServerPath], {
     stdio: 'pipe',

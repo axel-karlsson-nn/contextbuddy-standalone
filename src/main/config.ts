@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { app, dialog } from 'electron';
+import { getMcpServerPath } from './paths';
 
 const MCP_JSON_PATH = path.join(os.homedir(), '.mcp.json');
 const BACKUP_SUFFIX = '.backup';
@@ -13,18 +14,6 @@ interface McpConfig {
       args: string[];
     };
   };
-}
-
-/**
- * Get the path to the bundled MCP server
- */
-function getMcpServerPath(): string {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'mcp-server', 'dist', 'index.js');
-  } else {
-    // Development path
-    return '/Users/axekar/contextbuddy/dist/index.js';
-  }
 }
 
 /**
