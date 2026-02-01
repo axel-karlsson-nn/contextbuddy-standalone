@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "contextbuddy": {
+      "command": "node",
+      "args": ["REPLACE_WITH_FULL_PATH/dist/index.js"]
+    }
+  }
+}

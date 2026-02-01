@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadmap - ContextBuddy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.css">
+  <style>
+    .gantt-container {
+      overflow-x: auto;
+    }
+    .gantt .bar-label {
+      font-size: 11px;
+    }
+    .gantt .grid-row:nth-child(even) {
+      fill: #f9fafb;
+    }
+    .gantt .bar-wrapper:hover .bar {
+      fill-opacity: 0.9;
+    }
+    /* Custom colors by team */
+    .bar-team-0 .bar { fill: #3b82f6; }
+    .bar-team-1 .bar { fill: #10b981; }
+    .bar-team-2 .bar { fill: #f59e0b; }
+    .bar-team-3 .bar { fill: #8b5cf6; }
+    .bar-team-4 .bar { fill: #ec4899; }
+    .bar-team-5 .bar { fill: #06b6d4; }
+    /* Milestone style */
+    .bar-milestone .bar {
+      fill: #ef4444 !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center justify-between h-14">
+        <a href="/" class="font-bold text-xl text-gray-900">ContextBuddy</a>
+        <div class="flex gap-6">
+          <a href="/" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+          <a href="/teams.html" class="text-gray-600 hover:text-gray-900">Teams</a>
+          <a href="/planning.html" class="text-gray-600 hover:text-gray-900">Planning</a>
+          <a href="/roadmap.html" class="text-blue-600 font-medium">Roadmap</a>
+          <a href="/archive.html" class="text-gray-600 hover:text-gray-900">Archive</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-full mx-auto py-8 px-4">
+    <header class="mb-8 flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Roadmap</h1>
+        <p class="text-gray-600">Timeline view of tickets and milestones</p>
+      </div>
+      <div class="flex gap-4 items-center">
+        <select id="viewMode" class="px-3 py-2 border border-gray-300 rounded-md">
+          <option value="Week">Week</option>
+          <option value="Month" selected>Month</option>
+          <option value="Quarter">Quarter</option>
+        </select>
+        <div id="legend" class="flex gap-4 text-sm"></div>
+      </div>
+    </header>
+
+    <!-- Gantt Container -->
+    <div class="bg-white rounded-lg shadow p-4">
+      <div id="ganttContainer" class="gantt-container">
+        <p class="text-gray-500 text-center py-8">Loading roadmap...</p>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-12">
+      <p class="text-gray-500">No tickets or milestones to display</p>
+      <p class="text-gray-400 text-sm mt-2">Create tickets in the Planning page to see them here</p>
+    </div>
+  </div>
+
+  <!-- Ticket Detail Modal -->
+  <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div id="detailContent"></div>
+      <div class="flex justify-end mt-4">
+        <button onclick="closeDetailModal()" class="px-4 py-2 text-gray-600 hover:text-gray-900">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.umd.js"></script>
+  <script src="roadmap.js"></script>
+</body>
+</html>

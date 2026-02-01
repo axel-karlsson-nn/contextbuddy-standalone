@@ -1,6 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
-import { getWebServerPath, getContextBuddyPath } from './paths';
+import { getWebServerPath, getDataPath, getMcpServerBasePath } from './paths';
 
 let webProcess: ChildProcess | null = null;
 
@@ -15,21 +15,27 @@ export async function startMcpServer(): Promise<boolean> {
   }
 
   const webServerPath = getWebServerPath();
-  const contextBuddyPath = getContextBuddyPath();
+  const dataPath = getDataPath();
+  const mcpBasePath = getMcpServerBasePath();
 
-  if (!webServerPath || !contextBuddyPath) {
-    console.error('Web server path not configured');
+  if (!dataPath) {
+    console.error('Data path not configured');
     return false;
   }
 
   console.log('Starting web server from:', webServerPath);
-  console.log('Working directory:', contextBuddyPath);
+  console.log('Data path:', dataPath);
+  console.log('MCP server base:', mcpBasePath);
 
   try {
+    // Pass DATA_PATH env var so the web server knows where .data/ is
     webProcess = spawn('node', [webServerPath], {
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env },
-      cwd: contextBuddyPath,  // Set working directory to contextbuddy folder
+      env: {
+        ...process.env,
+        CONTEXTBUDDY_DATA_PATH: dataPath,
+      },
+      cwd: mcpBasePath,
       detached: false,
     });
 

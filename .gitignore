@@ -8,8 +8,11 @@ out/
 *.app
 *.zip
 
-# MCP server bundle (copied from contextbuddy during build)
-mcp-server/
+# MCP server build artifacts (source is tracked)
+mcp-server/node_modules/
+mcp-server/dist/
+mcp-server/.data/
+mcp-server/.mcp.json
 
 # Local dev files
 .env

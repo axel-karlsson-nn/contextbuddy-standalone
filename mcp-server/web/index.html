@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContextBuddy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .note-decision { border-left-color: #3b82f6; }
+    .note-action { border-left-color: #f59e0b; }
+    .note-note { border-left-color: #6b7280; }
+    .note-idea { border-left-color: #8b5cf6; }
+    .note-question { border-left-color: #ec4899; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center justify-between h-14">
+        <a href="/" class="font-bold text-xl text-gray-900">ContextBuddy</a>
+        <div class="flex gap-6">
+          <a href="/" class="text-blue-600 font-medium">Dashboard</a>
+          <a href="/teams.html" class="text-gray-600 hover:text-gray-900">Teams</a>
+          <a href="/planning.html" class="text-gray-600 hover:text-gray-900">Planning</a>
+          <a href="/roadmap.html" class="text-gray-600 hover:text-gray-900">Roadmap</a>
+          <a href="/archive.html" class="text-gray-600 hover:text-gray-900">Archive</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-4xl mx-auto py-8 px-4">
+    <!-- Header -->
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+      <p class="text-gray-600">Your decisions, notes, and action items</p>
+    </header>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <div class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-[200px]">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+          <input type="text" id="search" placeholder="Search notes..."
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+          <select id="filterType" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Types</option>
+            <option value="decision">Decisions</option>
+            <option value="action">Actions</option>
+            <option value="note">Notes</option>
+            <option value="idea">Ideas</option>
+            <option value="question">Questions</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Team</label>
+          <select id="filterTeam" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Teams</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+          <select id="filterProject" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Projects</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-5 gap-4 mb-6">
+      <div class="bg-blue-100 rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-blue-700" id="statDecisions">0</div>
+        <div class="text-sm text-blue-600">Decisions</div>
+      </div>
+      <div class="bg-amber-100 rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-amber-700" id="statActions">0</div>
+        <div class="text-sm text-amber-600">Actions</div>
+      </div>
+      <div class="bg-gray-100 rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-gray-700" id="statNotes">0</div>
+        <div class="text-sm text-gray-600">Notes</div>
+      </div>
+      <div class="bg-purple-100 rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-purple-700" id="statIdeas">0</div>
+        <div class="text-sm text-purple-600">Ideas</div>
+      </div>
+      <div class="bg-pink-100 rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-pink-700" id="statQuestions">0</div>
+        <div class="text-sm text-pink-600">Questions</div>
+      </div>
+    </div>
+
+    <!-- Notes List -->
+    <div id="notesList" class="space-y-4">
+      <p class="text-gray-500 text-center py-8">Loading notes...</p>
+    </div>
+  </div>
+
+  <!-- Edit Note Modal -->
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+      <div class="flex items-center justify-between p-4 border-b">
+        <h3 class="text-lg font-semibold text-gray-900">Edit Note</h3>
+        <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+      </div>
+      <form id="editForm" class="p-4 space-y-4">
+        <input type="hidden" id="editNoteId">
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+          <textarea id="editContent" rows="3" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <select id="editType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="decision">Decision</option>
+              <option value="action">Action</option>
+              <option value="note">Note</option>
+              <option value="idea">Idea</option>
+              <option value="question">Question</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Team</label>
+            <select id="editTeam" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">None</option>
+            </select>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+          <select id="editProject" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">None</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
+          <input type="text" id="editTags" placeholder="e.g. frontend, urgent, v2"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        
+        <div class="flex justify-end gap-3 pt-4 border-t">
+          <button type="button" onclick="closeEditModal()" 
+                  class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
+          <button type="submit" 
+                  class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

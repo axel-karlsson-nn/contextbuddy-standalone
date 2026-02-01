@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planning - ContextBuddy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center justify-between h-14">
+        <a href="/" class="font-bold text-xl text-gray-900">ContextBuddy</a>
+        <div class="flex gap-6">
+          <a href="/" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+          <a href="/teams.html" class="text-gray-600 hover:text-gray-900">Teams</a>
+          <a href="/planning.html" class="text-blue-600 font-medium">Planning</a>
+          <a href="/roadmap.html" class="text-gray-600 hover:text-gray-900">Roadmap</a>
+          <a href="/archive.html" class="text-gray-600 hover:text-gray-900">Archive</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto py-8 px-4">
+    <header class="mb-8 flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Planning</h1>
+        <p class="text-gray-600">Manage planning periods and tickets</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="openPeriodModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+          New Period
+        </button>
+        <button onclick="openTicketModal()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+          New Ticket
+        </button>
+      </div>
+    </header>
+
+    <!-- Period Tabs -->
+    <div id="periodTabs" class="flex gap-2 mb-6 overflow-x-auto pb-2">
+      <p class="text-gray-500">Loading periods...</p>
+    </div>
+
+    <!-- Tickets Grid -->
+    <div id="ticketsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    </div>
+  </div>
+
+  <!-- Create Period Modal -->
+  <div id="periodModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <h3 class="text-lg font-semibold mb-4">Create Planning Period</h3>
+      <form id="periodForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <input type="text" name="name" required placeholder="P1 2026"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <input type="date" name="startDate" required
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <input type="date" name="endDate" required
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+          <input type="number" name="year" required placeholder="2026"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-4">
+          <button type="button" onclick="closePeriodModal()" class="px-4 py-2 text-gray-600 hover:text-gray-900">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create/Edit Ticket Modal -->
+  <div id="ticketModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <h3 id="ticketModalTitle" class="text-lg font-semibold mb-4">Create Ticket</h3>
+      <form id="ticketForm" class="space-y-4">
+        <input type="hidden" name="id">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Period</label>
+          <select name="periodId" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Team</label>
+          <select name="teamId" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Initiative</label>
+          <input type="text" name="initiative" required placeholder="High-level initiative name"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Deliverable</label>
+          <input type="text" name="deliverable" required placeholder="Main deliverable"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Sub-deliverables</label>
+          <div id="subDeliverablesList" class="space-y-2 mb-2"></div>
+          <div class="flex gap-2">
+            <input type="text" id="newSubDeliverable" placeholder="Add sub-deliverable..."
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="button" onclick="addSubDeliverable()" class="px-3 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Add</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Supports (teams)</label>
+            <select name="supports" multiple
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-24">
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Depends On (teams)</label>
+            <select name="dependsOn" multiple
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-24">
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-4">
+          <button type="button" onclick="closeTicketModal()" class="px-4 py-2 text-gray-600 hover:text-gray-900">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="planning.js"></script>
+</body>
+</html>

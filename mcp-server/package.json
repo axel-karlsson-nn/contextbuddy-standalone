@@ -1,0 +1,28 @@
+{
+  "name": "contextbuddy",
+  "version": "1.0.0",
+  "description": "Personal note-taking and decision-tracking MCP server for product owners and engineering managers",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "web": "node web/server.js"
+  },
+  "keywords": [
+    "mcp",
+    "notes",
+    "decisions",
+    "context"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

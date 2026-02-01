@@ -3,12 +3,12 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { app } from 'electron';
 
-// Config file location for packaged app
+// Config file location
 const CONFIG_DIR = path.join(os.homedir(), 'Library', 'Application Support', 'ContextBuddy');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 interface AppConfig {
-  contextBuddyPath: string;
+  dataPath: string;  // Where .data/ lives (user's notes)
 }
 
 /**
@@ -34,13 +34,18 @@ function loadEnvLocal(): void {
 }
 
 /**
- * Read config from Application Support (for packaged app)
+ * Read config from Application Support
  */
 function readConfig(): AppConfig | null {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const content = fs.readFileSync(CONFIG_FILE, 'utf-8');
-      return JSON.parse(content);
+      const config = JSON.parse(content);
+      // Support both old format (contextBuddyPath) and new format (dataPath)
+      if (config.contextBuddyPath && !config.dataPath) {
+        config.dataPath = config.contextBuddyPath;
+      }
+      return config;
     }
   } catch (error) {
     console.error('Error reading config:', error);
@@ -83,43 +88,57 @@ export function getConfigFile(): string {
 loadEnvLocal();
 
 /**
- * Get the base ContextBuddy path
- * - In production: from ~/Library/Application Support/ContextBuddy/config.json
- * - In development: from CONTEXTBUDDY_PATH env var
+ * Get the path to the bundled MCP server
+ * - In production: bundled in app resources
+ * - In development: from CONTEXTBUDDY_PATH env var or local mcp-server/
  */
-export function getContextBuddyPath(): string | null {
+export function getMcpServerBasePath(): string {
   if (app.isPackaged) {
-    const config = readConfig();
-    if (!config) {
-      return null; // Will trigger first-run setup
-    }
-    return config.contextBuddyPath;
+    return path.join(process.resourcesPath, 'mcp-server');
   }
 
+  // In development, check for env var first, then fall back to local mcp-server
   const envPath = process.env.CONTEXTBUDDY_PATH;
-  if (!envPath) {
-    console.error(
-      'CONTEXTBUDDY_PATH not set. Create .env.local with:\nCONTEXTBUDDY_PATH=/path/to/your/contextbuddy'
-    );
-    return null;
+  if (envPath) {
+    return envPath;
   }
-  return envPath;
+
+  // Fall back to local mcp-server directory
+  return path.join(__dirname, '../../mcp-server');
+}
+
+/**
+ * Get the data path (where .data/ lives)
+ * - In production: from config file (user-selected)
+ * - In development: from CONTEXTBUDDY_PATH env var
+ */
+export function getDataPath(): string | null {
+  if (app.isPackaged) {
+    const config = readConfig();
+    return config?.dataPath || null;
+  }
+
+  // In development, use CONTEXTBUDDY_PATH
+  return process.env.CONTEXTBUDDY_PATH || null;
 }
 
 /**
  * Get the path to the MCP server entry point
  */
-export function getMcpServerPath(): string | null {
-  const basePath = getContextBuddyPath();
-  if (!basePath) return null;
-  return path.join(basePath, 'dist', 'index.js');
+export function getMcpServerPath(): string {
+  return path.join(getMcpServerBasePath(), 'dist', 'index.js');
 }
 
 /**
  * Get the path to the web server
  */
-export function getWebServerPath(): string | null {
-  const basePath = getContextBuddyPath();
-  if (!basePath) return null;
-  return path.join(basePath, 'web', 'server.js');
+export function getWebServerPath(): string {
+  return path.join(getMcpServerBasePath(), 'web', 'server.js');
+}
+
+/**
+ * Set the data path in config
+ */
+export function setDataPath(dataPath: string): void {
+  writeConfig({ dataPath });
 }

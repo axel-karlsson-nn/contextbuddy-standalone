@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Details - ContextBuddy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex items-center justify-between h-14">
+        <a href="/" class="font-bold text-xl text-gray-900">ContextBuddy</a>
+        <div class="flex gap-6">
+          <a href="/" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+          <a href="/teams.html" class="text-blue-600 font-medium">Teams</a>
+          <a href="/planning.html" class="text-gray-600 hover:text-gray-900">Planning</a>
+          <a href="/roadmap.html" class="text-gray-600 hover:text-gray-900">Roadmap</a>
+          <a href="/archive.html" class="text-gray-600 hover:text-gray-900">Archive</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto py-8 px-4">
+    <div id="content">
+      <p class="text-gray-500 text-center py-8">Loading team...</p>
+    </div>
+  </div>
+
+  <!-- Edit Responsibilities Modal -->
+  <div id="responsibilitiesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+      <h3 class="text-lg font-semibold mb-4">Edit Responsibilities</h3>
+      <div id="responsibilitiesList" class="space-y-2 mb-4 max-h-64 overflow-y-auto">
+      </div>
+      <div class="flex gap-2 mb-4">
+        <input type="text" id="newResponsibility" placeholder="Add new responsibility..."
+               class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button onclick="addResponsibility()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+          Add
+        </button>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal()" class="px-4 py-2 text-gray-600 hover:text-gray-900">Cancel</button>
+        <button onclick="saveResponsibilities()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="team.js"></script>
+</body>
+</html>

@@ -2,8 +2,7 @@ import { app, Tray, Menu, nativeImage, shell, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { startMcpServer, stopMcpServer } from './server';
-import { configureMcpJson, checkClaudeCodeInstalled } from './config';
-import { configExists, writeConfig, getContextBuddyPath, getConfigFile } from './paths';
+import { configExists, setDataPath, getDataPath, getConfigFile, getMcpServerBasePath } from './paths';
 
 let tray: Tray | null = null;
 let serverRunning = false;
@@ -36,7 +35,7 @@ function createTray() {
 }
 
 function updateTrayMenu() {
-  const cbPath = getContextBuddyPath();
+  const dataPath = getDataPath();
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -53,19 +52,24 @@ function updateTrayMenu() {
       label: serverRunning ? '● Server Running' : '○ Server Stopped',
       enabled: false,
     },
+    { type: 'separator' },
     {
-      label: cbPath ? `Path: ${cbPath}` : 'Path: Not configured',
+      label: dataPath ? `Data: ${dataPath}` : 'Data folder not set',
       enabled: false,
     },
-    { type: 'separator' },
     {
       label: serverRunning ? 'Stop Server' : 'Start Server',
       click: () => toggleServer(),
-      enabled: cbPath !== null,
+      enabled: dataPath !== null,
     },
     {
-      label: 'Change ContextBuddy Path...',
-      click: () => promptForPath(),
+      label: 'Change Data Folder...',
+      click: () => promptForDataPath(),
+    },
+    { type: 'separator' },
+    {
+      label: 'Set Up Claude Code...',
+      click: () => setupClaudeCode(),
     },
     { type: 'separator' },
     {
@@ -102,20 +106,20 @@ function openDashboard() {
 }
 
 async function showAbout() {
-  const cbPath = getContextBuddyPath();
+  const dataPath = getDataPath();
   await dialog.showMessageBox({
     type: 'info',
     title: 'About ContextBuddy',
-    message: 'ContextBuddy Standalone',
-    detail: `Version 0.1.0\n\nA menu bar companion for ContextBuddy.\nWorks with Claude Code CLI.\n\nPath: ${cbPath || 'Not configured'}`,
+    message: 'ContextBuddy',
+    detail: `Version 0.1.0\n\nA note-taking companion for Claude Code.\n\nData folder: ${dataPath || 'Not configured'}\nMCP Server: ${getMcpServerBasePath()}`,
   });
 }
 
-async function promptForPath(): Promise<boolean> {
+async function promptForDataPath(): Promise<boolean> {
   const result = await dialog.showOpenDialog({
-    title: 'Select your ContextBuddy folder',
-    message: 'Choose the folder containing your ContextBuddy installation (with dist/, web/, .data/)',
-    properties: ['openDirectory'],
+    title: 'Select folder for your notes',
+    message: 'Choose where to store your ContextBuddy notes (.data folder will be created here)',
+    properties: ['openDirectory', 'createDirectory'],
     buttonLabel: 'Select Folder',
   });
 
@@ -125,28 +129,20 @@ async function promptForPath(): Promise<boolean> {
 
   const selectedPath = result.filePaths[0];
 
-  // Validate the folder has the required structure
-  const requiredFiles = ['dist/index.js', 'web/server.js'];
-  const missing = requiredFiles.filter(f => !fs.existsSync(path.join(selectedPath, f)));
-
-  if (missing.length > 0) {
-    await dialog.showMessageBox({
-      type: 'error',
-      title: 'Invalid Folder',
-      message: 'This folder doesn\'t look like a ContextBuddy installation.',
-      detail: `Missing: ${missing.join(', ')}\n\nMake sure you select a folder with dist/ and web/ subdirectories.`,
-    });
-    return false;
+  // Create .data folder if it doesn't exist
+  const dataFolder = path.join(selectedPath, '.data');
+  if (!fs.existsSync(dataFolder)) {
+    fs.mkdirSync(dataFolder, { recursive: true });
   }
 
   // Save the config
-  writeConfig({ contextBuddyPath: selectedPath });
+  setDataPath(selectedPath);
 
   await dialog.showMessageBox({
     type: 'info',
     title: 'Configuration Saved',
-    message: 'ContextBuddy path configured!',
-    detail: `Path: ${selectedPath}\n\nConfig saved to:\n${getConfigFile()}`,
+    message: 'Data folder configured!',
+    detail: `Your notes will be stored in:\n${dataFolder}\n\nConfig saved to:\n${getConfigFile()}`,
   });
 
   // Restart server with new path
@@ -160,25 +156,75 @@ async function promptForPath(): Promise<boolean> {
   return true;
 }
 
+async function setupClaudeCode() {
+  const dataPath = getDataPath();
+  if (!dataPath) {
+    await dialog.showMessageBox({
+      type: 'warning',
+      title: 'Set Up Data Folder First',
+      message: 'Please select a data folder first.',
+      detail: 'Click "Change Data Folder..." to set up where your notes will be stored.',
+    });
+    return;
+  }
+
+  const mcpServerPath = path.join(getMcpServerBasePath(), 'dist', 'index.js');
+  const mcpJsonPath = path.join(dataPath, '.mcp.json');
+
+  // Create .mcp.json in the data folder
+  const mcpConfig = {
+    mcpServers: {
+      contextbuddy: {
+        command: 'node',
+        args: [mcpServerPath],
+        env: {
+          CONTEXTBUDDY_DATA_PATH: dataPath
+        }
+      }
+    }
+  };
+
+  fs.writeFileSync(mcpJsonPath, JSON.stringify(mcpConfig, null, 2));
+
+  await dialog.showMessageBox({
+    type: 'info',
+    title: 'Claude Code Configured',
+    message: 'Claude Code is ready to use!',
+    detail: `Created ${mcpJsonPath}\n\nTo use ContextBuddy with Claude:\n\n1. cd ${dataPath}\n2. claude\n\nRun Claude from that folder to capture notes.`,
+  });
+}
+
 async function firstRunSetup(): Promise<boolean> {
-  // Check if path is configured
   if (app.isPackaged && !configExists()) {
     await dialog.showMessageBox({
       type: 'info',
       title: 'Welcome to ContextBuddy',
       message: 'Let\'s set up ContextBuddy!',
-      detail: 'First, select the folder where your ContextBuddy installation is located.\n\nThis is the folder containing your notes (.data/), the server (dist/), and web UI (web/).',
+      detail: 'First, choose where to store your notes.\n\nThis will create a .data folder in your selected location.',
     });
 
-    const configured = await promptForPath();
+    const configured = await promptForDataPath();
     if (!configured) {
       await dialog.showMessageBox({
         type: 'warning',
         title: 'Setup Incomplete',
-        message: 'ContextBuddy needs a folder to work.',
+        message: 'ContextBuddy needs a data folder to work.',
         detail: 'You can configure it later from the menu bar icon.',
       });
       return false;
+    }
+
+    // Offer to set up Claude Code
+    const setupClaude = await dialog.showMessageBox({
+      type: 'question',
+      title: 'Set Up Claude Code?',
+      message: 'Would you like to configure Claude Code now?',
+      detail: 'This will create a .mcp.json file so you can use ContextBuddy with Claude.',
+      buttons: ['Set Up Now', 'Later'],
+    });
+
+    if (setupClaude.response === 0) {
+      await setupClaudeCode();
     }
   }
 
@@ -191,7 +237,7 @@ app.whenReady().then(async () => {
   // First-run setup
   const setupComplete = await firstRunSetup();
 
-  if (setupComplete && getContextBuddyPath()) {
+  if (setupComplete && getDataPath()) {
     // Auto-start web server
     try {
       const success = await startMcpServer();

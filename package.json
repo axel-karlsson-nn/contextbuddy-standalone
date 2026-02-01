@@ -1,17 +1,19 @@
 {
   "name": "contextbuddy-standalone",
   "version": "0.1.0",
-  "description": "Menu bar companion app for ContextBuddy",
+  "description": "ContextBuddy - Menu bar app for note-taking with Claude Code",
   "main": "dist/main/index.js",
   "author": "Axel Karlsson",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
-    "preview": "electron-vite preview",
+    "build:app": "electron-vite build",
+    "build:mcp": "cd mcp-server && npm install && npm run build",
+    "build": "npm run build:mcp && npm run build:app",
     "clean": "rm -rf dist/mac-arm64 dist/*.dmg dist/*.zip dist/*.blockmap dist/*.yml",
     "dist": "npm run clean && npm run build && electron-builder",
-    "dist:mac": "npm run clean && npm run build && electron-builder --mac"
+    "dist:mac": "npm run clean && npm run build && electron-builder --mac",
+    "postinstall": "cd mcp-server && npm install"
   },
   "dependencies": {},
   "devDependencies": {
@@ -38,6 +40,30 @@
       {
         "from": "assets/",
         "to": "assets/"
+      },
+      {
+        "from": "mcp-server/dist/",
+        "to": "mcp-server/dist/"
+      },
+      {
+        "from": "mcp-server/web/",
+        "to": "mcp-server/web/"
+      },
+      {
+        "from": "mcp-server/skills/",
+        "to": "mcp-server/skills/"
+      },
+      {
+        "from": "mcp-server/scripts/",
+        "to": "mcp-server/scripts/"
+      },
+      {
+        "from": "mcp-server/package.json",
+        "to": "mcp-server/package.json"
+      },
+      {
+        "from": "mcp-server/.mcp.json.example",
+        "to": "mcp-server/.mcp.json.example"
       }
     ]
   }
