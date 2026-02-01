@@ -1,19 +1,34 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, shell } from 'electron';
+import { app, Tray, Menu, nativeImage, shell, dialog } from 'electron';
 import * as path from 'path';
 import { startMcpServer, stopMcpServer } from './server';
 import { configureMcpJson, checkClaudeCodeInstalled } from './config';
 
 let tray: Tray | null = null;
-let mainWindow: BrowserWindow | null = null;
 let serverRunning = false;
 
 // Hide dock icon - we're a menu bar app
-app.dock?.hide();
+if (app.dock) {
+  app.dock.hide();
+}
+
+function getAssetPath(asset: string): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'assets', asset);
+  }
+  return path.join(__dirname, '../../assets', asset);
+}
 
 function createTray() {
   // Use template image for macOS menu bar (auto dark/light mode)
-  const iconPath = path.join(__dirname, '../../assets/iconTemplate.png');
-  const icon = nativeImage.createFromPath(iconPath);
+  const iconPath = getAssetPath('iconTemplate.png');
+  let icon = nativeImage.createFromPath(iconPath);
+
+  // Fallback if icon doesn't load
+  if (icon.isEmpty()) {
+    console.log('Icon not found at:', iconPath);
+    // Create a simple colored icon as fallback
+    icon = nativeImage.createFromBuffer(Buffer.alloc(0));
+  }
 
   tray = new Tray(icon);
   tray.setToolTip('ContextBuddy');
@@ -33,7 +48,7 @@ function updateTrayMenu() {
       click: () => openDashboard(),
     },
     {
-      label: serverRunning ? 'Server: Running ✓' : 'Server: Stopped',
+      label: serverRunning ? '● Server Running' : '○ Server Stopped',
       enabled: false,
     },
     { type: 'separator' },
@@ -47,16 +62,13 @@ function updateTrayMenu() {
     },
     { type: 'separator' },
     {
-      label: 'Preferences...',
-      click: () => openPreferences(),
-    },
-    {
       label: 'About ContextBuddy',
-      click: () => openAbout(),
+      click: () => showAbout(),
     },
     { type: 'separator' },
     {
       label: 'Quit',
+      accelerator: 'Command+Q',
       click: () => {
         stopMcpServer();
         app.quit();
@@ -79,46 +91,74 @@ async function toggleServer() {
 }
 
 function openDashboard() {
-  // Open web UI in default browser
   shell.openExternal('http://localhost:3333');
 }
 
-function openPreferences() {
-  // TODO: Open preferences window
-  console.log('Preferences not yet implemented');
-}
-
-function openAbout() {
-  // TODO: Open about window
-  console.log('About not yet implemented');
+async function showAbout() {
+  await dialog.showMessageBox({
+    type: 'info',
+    title: 'About ContextBuddy',
+    message: 'ContextBuddy Standalone',
+    detail: 'Version 0.1.0\n\nA menu bar companion for ContextBuddy.\nWorks with Claude Code CLI.',
+  });
 }
 
 async function firstRunSetup() {
   const claudeInstalled = await checkClaudeCodeInstalled();
 
   if (!claudeInstalled) {
-    // TODO: Show dialog explaining Claude Code is needed
-    console.log('Claude Code CLI not found');
+    const result = await dialog.showMessageBox({
+      type: 'warning',
+      title: 'Claude Code Not Found',
+      message: 'Claude Code CLI is not installed.',
+      detail: 'ContextBuddy works best with Claude Code CLI.\n\nVisit https://claude.ai/claude-code to install it.',
+      buttons: ['Open Install Page', 'Continue Anyway'],
+    });
+
+    if (result.response === 0) {
+      shell.openExternal('https://claude.ai/claude-code');
+    }
   }
 
-  // Configure ~/.mcp.json
-  await configureMcpJson();
+  // Offer to configure
+  const configResult = await dialog.showMessageBox({
+    type: 'question',
+    title: 'Configure Claude Code',
+    message: 'Would you like to configure Claude Code to use ContextBuddy?',
+    detail: 'This will add ContextBuddy to your ~/.mcp.json file.',
+    buttons: ['Configure Now', 'Later'],
+  });
+
+  if (configResult.response === 0) {
+    await configureMcpJson();
+  }
 }
 
 app.whenReady().then(async () => {
-  // Check if first run
-  const isFirstRun = !app.isPackaged; // TODO: Check actual first run state
+  createTray();
+
+  // Check if first run (simple check - could be improved)
+  const isFirstRun = process.env.CB_FIRST_RUN === '1' || !app.isPackaged;
 
   if (isFirstRun) {
     await firstRunSetup();
   }
 
-  createTray();
-
-  // Auto-start MCP server
-  await startMcpServer();
-  serverRunning = true;
-  updateTrayMenu();
+  // Auto-start web server
+  try {
+    await startMcpServer();
+    serverRunning = true;
+    updateTrayMenu();
+    console.log('ContextBuddy started successfully');
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    await dialog.showMessageBox({
+      type: 'error',
+      title: 'Server Error',
+      message: 'Failed to start ContextBuddy server',
+      detail: String(error),
+    });
+  }
 });
 
 app.on('window-all-closed', () => {
