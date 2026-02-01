@@ -1,0 +1,16 @@
+node_modules/
+dist/
+out/
+.DS_Store
+
+# Electron build outputs
+*.dmg
+*.app
+*.zip
+
+# MCP server bundle (copied from contextbuddy during build)
+mcp-server/
+
+# Local dev files
+.env
+.env.local
